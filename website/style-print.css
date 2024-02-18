@@ -1,0 +1,9 @@
+body, html {
+    font-size: 10pt; 
+    font-family: "Times New Roman", Times, Serif;
+  }
+a { 
+    background-color: white; 
+    color: blue; 
+    text-decoration: none;
+  }

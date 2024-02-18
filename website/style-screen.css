@@ -1,0 +1,7 @@
+html, body  { font-family: sans-serif; }
+a:hover {
+  text-decoration: none;
+  background-color: #ffcccc;
+  color:  #000;
+  }
+a#target    { text-decoration: none; background: transparent; }

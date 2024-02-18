@@ -1,0 +1,58 @@
+html, body { background-color: #ffffcc; color: #000; }
+h1   { text-align: center;  }
+p { margin-left: 1em; margin-right: 2em; }
+.indent { margin-left: 2em; }
+.caption { font-weight: bolder; margin: 0 0 0 1em; }
+.footer { text-align: center; font-size: smaller; }
+.whitebox {
+  background-color: white;
+  color:            black;
+  border:           solid 1px blue;
+  margin:           1em;
+  padding:          1em;
+  }
+
+.pre {
+  font-family:      monospace;
+  background-color: #cccccc;
+  color:            #000;
+  margin-left:      2em;
+  margin-right:     4em;
+  white-space:      pre;
+  }
+
+img {
+  border:         solid 1px blue;
+  margin-left:    1em;
+  margin-bottom:  0;
+  padding:        0.5em;
+  }
+.figure {
+  margin-left:    3em;
+  margin-bottom:  1em;
+  border:         none;
+  }
+table.truth {
+  background-color: #ffffcc;
+  color:            #000;
+  border:           solid 1px blue;
+  margin-left:      2em;
+  border-collapse:  collapse;
+  }
+colgroup.tt_inputs { border-right: solid 1px black; }
+
+th {
+  border-bottom:    solid 1px black;
+  padding-top:      2px;
+  padding-bottom:   2px;
+  padding-left:     0.5em;
+  padding-right:    0.5em;
+  background-color: #cccccc;
+  color:            #000;
+  }
+td { text-align: center; }
+fieldset { width: 80%; margin: auto; padding-right: 2em;}
+
+.overbar {
+  text-decoration: overline;
+}

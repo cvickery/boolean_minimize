@@ -1,0 +1,671 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+  "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+  <head>
+    <title>Minimizing Boolean Functions</title>
+    <link rel="stylesheet" type="text/css" href="style-all.css" />
+    <link rel="stylesheet" type="text/css" media="screen" 
+          href="style-screen.css" />
+    <link rel="stylesheet" type="text/css" media="print" 
+          href="style-print.css" />
+  </head>
+  <body>
+
+    <h1>Minimizing Boolean Functions</h1>
+
+    <h2>Introduction</h2>
+    <div class="whitebox">
+
+      <p>This document describes graphical and algebraic ways to minimize boolean functions. It
+      includes <a href="#program">a Java program</a> that you can use to experiment with the
+      algebraic algorithm outlined below. The subject of minimization is also covered in many
+      textbooks, articles, and other web sites. Here are a few references:</p>
+
+      <fieldset>
+      <legend>Some Minimization Resources</legend>
+      <ol>
+
+        <li><a
+        href="http://www-ihs.theoinf.tu-ilmenau.de/~sane/projekte/karnaugh/embed_karnaugh.html">
+        Interactive Karnaugh Map</a> from the Technische Universit&#228;t Ilmenau (Germany). The
+        applet web page linked to from here is part of a large set of tutorial pages on logic
+        design written in German, including several other excellent Java applets in addition to
+        this one. Most of the applets have an option for interacting with the user in English, but
+        the text material on the web site is all in German.<br/><strong>Unfortunately, the applet
+        is no longer (as of February, 2024) available</strong></li>
+
+        <li>Karnaugh, M. "The Map Method for Synthesis of Combinational Logic Circuits", <em>Trans.
+        AIEE, pt. I, vol. 72, no. 9, pp. 593-599</em>, 1953. As cited in the Kohavi and McCluskey
+        books listed below.</li>
+
+        <li>Kohavi, Z. <em>Switching and Finite Automata Theory</em>, New York: McGraw-Hill,
+        1970.</li>
+
+        <li>McCluskey, E. J., <em>Introduction to the Theory of Switching Circuits</em>, New York:
+        McGraw-Hill, 1965</li>
+
+      </ol>
+      </fieldset>
+
+      <h3>Why Minimize?</h3>
+
+      <p>All the datapath and control structures of a digital device can be represented as boolean
+      functions, which take the general form:</p>
+
+      <p class="indent"> <em>y&nbsp;=&nbsp;&Sigma;(x,&nbsp;&hellip;&nbsp;)</em> </p>
+
+      <p>where &ldquo;<em>(x,&nbsp;&hellip;&nbsp;)</em>&rdquo; is a set of <em>boolean
+      variables</em> (variables that may take on only the values zero and one). These boolean
+      functions must be converted into logic networks in the most economical way possible. What
+      qualifies as the &ldquo;most economical way possible&rdquo; varies, depending on whether the
+      network is built using discrete gates, a programmable logic device with a fixed complement of
+      gates available, or a fully-customized integrated circuit. But in all cases, minimization
+      yields a network with as small a number of gates as possible, and with each gate as simple as
+      possible.</p>
+
+      <p>To appreciate the importance of minimization, consider the two networks in <strong>Figures
+      1 </strong>and<strong> 2</strong>. Both behave exactly the same way!  No matter what pattern
+      of ones and zeros you put into <em>a</em>, <em>b</em>, and <em>c</em> in Fig. 1, the value it
+      produces at <em>y</em> will be exactly matched if you put the same pattern of values into the
+      corresponding inputs in Fig. 2. Yet the network in Fig. 2 uses far fewer gates, and the
+      gates it uses are simpler (have smaller fan-ins) than the gates in Fig. 1. Clearly, the
+      minimized circuit should be less expensive to build than the unminimized version. Although
+      it is not true for Fig. 2, it is often the case that minimized networks will be faster
+      (have fewer propagation delays) than unminimized networks.</p>
+
+      <div class="figure">
+        <img alt="Full sum of products logic network" src="Figure_1.gif" />
+        <p class="caption">Figure 1</p>
+      </div>
+      <div class="figure">
+        <img alt="Minimized logic network for the function implemented in Figure 1."
+        src="Figure_2.gif" />
+        <p class="caption">Figure 2</p>
+      </div>
+    </div>
+
+    <h2>Background and Terminology</h2>
+
+    <div class="whitebox">
+      <ul>
+
+        <li>The variables in the expression on the right side of a boolean equation are the input
+        wires to a logic network. The left side of a boolean equation is the output wire of the
+        network.</li>
+
+        <li>Any boolean equation or combinational logic network can be completely and exactly
+        characterized by a <em>truth table</em>. A truth table lists every possible combination of
+        values of the input variables, and the corresponding output value of the function for each
+        combination. There are 2<sup><em>n</em></sup> rows in the truth table for a function or
+        network with <em>n</em> input variables, so it isn&rsquo;t always practical to write out an
+        entire truth table. But for relatively small values of <em>n</em>, a truth table provides
+        a convenient way to describe the function or network&rsquo;s behavior exactly.
+
+        <fieldset>
+          <legend>Note</legend> <em>Always list the combinations of input values in binary counting
+          order from top to bottom (&nbsp;000, 001, 010, 011,&nbsp;&hellip;&nbsp;).</em>
+        </fieldset>
+
+        </li>
+
+        <li>Every row of a truth table with a one in the output column is called a <em>minterm</em>.
+        A convenient way to represent a truth table is to treat each combination of input variables
+        as a binary number and to list the numbers of the rows that are minterms.
+
+        <p>This document uses the function with the following truth table as a running example:</p>
+
+      <table class="truth">
+        <colgroup class="tt_inputs" span="3"></colgroup>
+        <colgroup class="tt_outputs" span="1"></colgroup>
+        <tr>
+          <th scope="col">a</th>
+          <th scope="col">b</th>
+          <th scope="col">c</th>
+          <th scope="col">Y</th>
+        </tr>
+        <tr>
+          <td>0</td><td>0</td><td>0</td> <td>0</td>
+        </tr>
+        <tr>
+          <td>0</td><td>0</td><td>1</td> <td>1</td>
+        </tr>
+        <tr>
+          <td>0</td><td>1</td><td>0</td> <td>1</td>
+        </tr>
+        <tr>
+          <td>0</td><td>1</td><td>1</td> <td>0</td>
+        </tr>
+        <tr>
+          <td>1</td><td>0</td><td>0</td> <td>1</td>
+        </tr>
+        <tr>
+          <td>1</td><td>0</td><td>1</td> <td>1</td>
+        </tr>
+        <tr>
+          <td>1</td><td>1</td><td>0</td> <td>1</td>
+        </tr>
+        <tr>
+          <td>1</td><td>1</td><td>1</td> <td>1</td>
+        </tr>
+      </table>
+
+        <p>This truth table can also be represented as the list of minterms, [&nbsp;1, 2, 4, 5, 6,
+        7&nbsp;]. That is, the truth table has a 1 in the Y column for the rows where the binary
+        number represented by the values of a, b, and c is one of the numbers listed inside the
+        square brackets. The other two rows (0 and 3) have a 0 in the Y column, and thus are not
+        minterms.</p> </li>
+
+        <li>One standard way to represent any boolean function is called &ldquo;sum of
+        products&rdquo; (SOP) or, more formally, <em>disjunctive normal form</em>. In this form,
+        the function is written as the logical OR (indicated by +) of a set of AND terms, one per
+        minterm.
+
+        <p>For example, the disjunctive normal form for our sample function would be:</p>
+        <pre>
+          Y = a'b'c + a'bc' + ab'c' + ab'c + abc' + abc
+        </pre>
+
+        <em>Note:</em> we also use the equivalent “overbar notation” for negation in places. The
+        first term would be written as: <span class="overbar">a</span> <span
+        class="overbar">b</span> c
+
+        </li>
+
+        <li>There is also a <em>conjunctive normal form,</em> which represents an expression as a
+        product of sums rather than as a sum of products. The material presented below can be
+        extended to deal with conjunctive normal forms rather than disjunctive normal forms.
+        We&rsquo;ll leave that as as one of those classic &ldquo;exercises left for the
+        student,&rdquo; and deal with just disjunctive normal forms.</li>
+
+        <li>A <em>literal</em> is a variable that is either complemented or not in a product term.
+        The minterms in our sample function have a total of six literals: a, a', b, b', c, and c'.
+        The network in Figure 2 uses only 5 literals because a' isn&rsquo;t used. In the
+        disjunctive normal form of a function, each product term has one literal for each
+        variable. (6 literals for 3 variables in our example function.)</li>
+
+        <li>Figure 1 implements our sample function, and demonstrates translating a disjunctive
+        normal form function directly into a logic network. The translation procedure is as
+        follows:
+
+          <ol>
+
+            <li>Use inverters to generate all possible literals (the six vertical wires on the left
+            in Fig. 1).</li>
+
+            <li>Draw an AND gate for each minterm. The fan-in (number of inputs) of each AND gate is
+            equal to the number of input variables.</li>
+
+            <li>Connect the outputs of all the AND gates to a single OR gate.</li>
+
+            <li>Connect the inputs of each AND gate to a pattern of literals in such a way that it
+            will generate a 1 when the pattern of input values matches the particular minterm
+            assigned to it.</li>
+
+          </ol> 
+        </li>
+
+        <li>A <em>minimal</em> form of a boolean expression is one which implements the expression
+        with as few literals and product terms as possible. There may be more than one minimal
+        form of an expression; if there is just one minimal form, that form is the
+        <em>minimum.</em></li>
+
+        <li>There are many rules for manipulating a boolean expression algebraically, but there is
+        just one rule that you need in order to minimize a function once it is in disjunctive
+        normal form: <em>the rule of complementation</em>.
+
+        <p>The rule of complementation says that (x + x') is always true (1), so any two terms that
+        are in the form (x + x')Y can be reduced to just Y without changing its meaning. Another
+        way of saying this is that two product terms can be simplified if the only difference
+        between them is the value of exactly one variable, in which case that variable can be
+        eliminated from both terms to give an equivalent single term. For example ab'c + a'b'c is
+        equivalent to (a + a')b'c, which is the same as the single product term, b'c.</p></li>
+
+    </ul>
+
+    </div>
+
+    <h2>Karnaugh Maps</h2>
+
+    <div class="whitebox">
+
+      <p>A Karnaugh Map is a graphical way of minimizing a boolean
+      expression based on the rule of complementation. It works well if
+      there are 2, 3, or 4 variables, but gets messy or impossible to use
+      for expressions with more variables than that.</p>
+
+      <p>The idea behind a Karnaugh Map (Karnaugh, 1953) is to draw an
+      expression&rsquo;s truth table as a matrix in such a way that each row
+      and each column of the matrix puts minterms that differ in the value
+      of a single variable adjacent to each other. Then, by grouping
+      adjacent cells of the matrix, you can identify product terms that
+      eliminate all complemented literals, resulting in a minimized version
+      of the expression.</p>
+
+      <p><strong>Figure 3</strong> shows how the minterms in truth tables
+      are placed in a Karnaugh Map grid for both 3 and 4 variable
+      expressions.</p>
+
+      <div class="figure">
+        <img alt="line drawing"  src="Figure_3.gif" />
+        <p class="caption">Figure 3</p>
+      </div>
+
+      <p>Looking at the 3 variable map on the left in Fig. 3, note that
+      minterm 0 (000<sub>2</sub>) is just above minterm 4
+      (100<sub>2</sub>). This arrangement means that if both minterms 0 and
+      4 occur in a function, the first variable (the one named <em>a</em> in
+      Fig. 3) appears in both its true and complemented form, and can be
+      eliminated. The top row of the Karnaugh Map is labeled with
+      <em>a'</em> and the lower row with <em>a</em>: Any minterms appearing
+      in the top row have the literal <em>a'</em> in them, and any minterms
+      in the bottom row have the literal <em>a</em> in them. At the same
+      time, note that each column has the same values for the variables
+      <em>b</em> and <em>c</em>. Also, the columns are arranged in an order
+      so that only one variable changes value as you go from one column to
+      the next. Thus, the first two columns differ in the value of
+      <em>c</em>, the second and third columns differ in the value of
+      <em>b</em>, and the third and fourth columns differ in the value of
+      <em>c</em> again. Furthermore, the first and fourth columns are
+      &ldquo;next to&rdquo; each other as well, because they differ from
+      each other just in the value of <em>b</em>.</p>
+
+      <p>The right side of Figure 3 shows that this same pattern (adjacent
+      <em>columns</em> differ by the value of a single variable) applies to
+      the <em>rows</em> of a Karnaugh map too:  The first and second rows of
+      that map differ in the value of <em>b</em>, the second and third
+      differ in the value of <em>a</em>, the third and fourth differ in
+      the value of <em>b</em>, and the first and fourth differ in the
+      value of <em>a</em>.</p>
+
+      <p><strong>Figure 4</strong> shows our sample function drawn as a
+      Karnaugh Map. Minterms 1 and 2 are in the second and fourth columns
+      of the top row, while minterms 4, 5, 7, and 6 appear from left to
+      right in the four columns of the bottom row.</p>
+
+      <div class="figure">
+        <img alt="Truth table and Karnaugh Map" src="Figure_4.gif" />
+        <p class="caption">Figure 4</p>
+      </div>
+
+      <p>A Karnaugh Map is used to produce a minimal sum of products
+      implementation of an expression by drawing rectangles around groups
+      of adjacent minterms in the map; each rectangle will correspond to
+      one product term, and the full expression will be constructed as the
+      OR (sum) of all the product terms. The goal is to have as few
+      product terms as possible, which implies that each product term will
+      account for as many minterms as possible.</p>
+
+      <p>Here are the rules for drawing the rectangles:</p>
+
+      <ul>
+
+          <li>Every minterm must be inside at least one rectangle, but there
+          must not be any zeros inside any rectangles.</li>
+
+          <li>Every rectangle has to be as large as possible.</li>
+
+          <li>Rectangles may wrap around to include cells in both the
+          leftmost and rightmost columns. likewise for the top and bottom
+          rows.</li>
+
+          <li>The number of minterms enclosed in a rectangle must be a power
+          of two (1, 2, 4, 8, or 16 minterms for 4-variable maps).</li>
+
+          <li>Some functions have "don&rsquo;t care" conditions, which are
+          combinations of inputs that will never occur, resulting in cases
+          where it doesn&rsquo;t matter whether the output is a zero or a
+          one. Where these don&rsquo;t care conditions appear in a Karnaugh
+          Map (usually indicated by X&rsquo;s instead of ones or zeros),
+          they may be included inside rectangles or not depending on what
+          will make the rectangles as few and as large as possible.</li>
+
+      </ul>
+
+      <p><strong>Figure 5</strong> shows the rectangles for our sample
+      function, following the procedure outlined above:</p>
+
+      <div class="figure">
+        <img  alt="Karnaugh Map for sample function" src="Figure_5.gif" />
+        <p class="caption">Figure 5</p>
+      </div>
+
+      <p>The largest rectangle (the bottom row) corresponds to the product
+      term <em>a</em>. By enclosing four minterms, two variables have
+      been eliminated resulting in a single product term with a single
+      variable. The rectangle in the second column encloses two minterms,
+      eliminating one variable (<em>a</em>) from that product term. 
+      Similarly, the rectangle in the fourth column eliminates <em>a</em>
+      from that product term. The resulting sum of products function
+      is:</p>
+
+
+      <div class="whitebox">
+        <p class="indent"><em>y&nbsp;=&nbsp;a&nbsp;+&nbsp;b'c&nbsp;+&nbsp;bc'</em></p>
+      </div>
+
+      <p>If you examine Fig. 2, you will see that that logic network
+      implements exactly this function.</p>
+
+      <p>Every time you double the number of minterms inside a rectangle,
+      you eliminate one variable from the resulting product term. Every
+      doubling corresponds to applying the rule of complementation again. 
+      The next section shows how to do the same thing algebraically.</p>
+
+      <p>The <a
+      href="http://www-ihs.theoinf.tu-ilmenau.de/~sane/projekte/karnaugh/embed_karnaugh.html">Interactive
+      Karnaugh Map</a> mentioned at the beginning of this page is a very
+      nice way to see how to draw the rectangles. You can enter the function
+      you want to process algebraically, by editing a truth table, or just
+      by clicking on cells in the Karnaugh Map itself. <strong>Figure
+      6</strong> is a screen shot of the applet showing how it displays our
+      sample function:</p>
+
+      <div class="figure">
+        <img  alt="Karnaugh Map applet screen shot" src="Figure_6.png" />
+        <p class="caption">Figure 6</p>
+      </div>
+
+    </div>
+
+    <h2>Algebraic Minimization</h2>
+
+    <div class="whitebox">
+      <p>Minimizing an expression algebraically involves repeatedly
+      applying the rule of complementation, starting with the disjunctive
+      normal form of the function, and ending with a set of product terms
+      called <em>prime implicants.</em>  A prime implicant is a product
+      term that will generate ones only for combinations of inputs that
+      are minterms of the disjunctive normal form of the function, and
+      which cannot be further reduced by combining with any other term. 
+      They correspond to the rectangles in a Karnaugh Map.</p>
+
+      <p>We will call each step in this process a &ldquo;pass.&rdquo;  It
+      takes two passes to minimize our sample function. The following chart
+      shows the original disjunctive normal form of the function as
+      &ldquo;Pass 0&rdquo; and shows what reductions are performed for the
+      other two passes.</p>
+
+    <div class="pre">
+       ---------------------------------------------------------------
+      | Pass 0:      a'b'c + a'bc' + ab'c' + ab'c + abc' + abc        |
+       ---------------------------------------------------------------
+
+       ---------------------------------------------------------------
+      | Pass 1:      a'b'c + ab'c  reduces to b'c                     |
+      |              a'bc' + abc'  reduces to bc'                     |
+      |              ab'c  + ab'c' reduces to ab'                     |
+      |              abc'  + abc   reduces to ab                      |
+       ---------------------------------------------------------------
+      |              b'c + bc' + ab' + ab                             |
+       ---------------------------------------------------------------
+
+       ---------------------------------------------------------------
+      | Pass 2:      ab'   + ab   reduces to  a                       |
+       ---------------------------------------------------------------
+      |              a + b'c + bc'                                    |
+       ---------------------------------------------------------------
+
+    </div>
+
+      <p>The rules to follow for each pass are:</p>
+
+      <ul>
+
+          <li>Each term present in one pass must be combined with another
+          term if possible.</li>
+
+          <li>Any terms that cannot be combined are carried forward
+          unchanged to the next pass.</li>
+
+          <li>A term that has already been used once in a pass should be
+          used again if it will allow another term to be reduced. For
+          example, in Pass 1 above, ab'c is used twice, and so is
+          abc'.</li>
+
+      </ul>
+
+      <p>The rule about reusing terms in a pass corresponds to circling
+      some minterms more than once in a Karnaugh Map. The two minterms
+      that are reused in Pass 1 above are exactly the same two that are
+      circled twice in the Karnaugh Map of Figure 5.</p>
+
+      <p>Once the prime implicants of an expression have been determined, a
+      minimal subset of them has to be selected. Picking a minimal subset
+      of prime implicants relies on the notion of minterms being
+      &ldquo;covered&rdquo; by prime implicants. For our sample function,
+      the prime implicant <em>a</em> covers minterms 4, 5, 6, and 7; the
+      prime implicant b'c covers minterms 1 and 5, and and the prime
+      implicant bc' covers minterms 2 and 6. In this example, we need all
+      three prime implicants in order to cover all the minterms at least
+      once, and the expression shown at the end of Pass 2 is the minimized
+      form for our sample function.</p>
+
+      <p>But whenever there is more than one minimal form for an
+      expression, the different forms will correspond to different subsets
+      of the complete set of prime implicants. For any one of the minimal
+      forms there will be extra prime implicants that have to be
+      discarded.</p>
+
+      <p>The following procedure describes a way to determine one minimal
+      form of an expression after all the prime implicants have been
+      determined.</p>
+
+      <ul>
+
+          <li>For every minterm that is covered by just one prime implicant,
+          that prime implicant must be included in the minimal form. These
+          minterms are called <em>essential prime implicants</em> because it
+          is essential to include them in the minimization.
+
+          <p>For our sample function, minterms 2, 3, and 4 are each covered
+          by exactly one prime implicant, so all three of the prime
+          implicants are essential, there is just one minimized form, and
+          there is nothing more to do.</p> </li>
+
+          <li>Make a list of all minterms that are not covered by any of the
+          essential prime implicants.</li>
+
+          <li>Make a list of unused prime implicants. Order this list by the
+          number of literals each prime implicant contains.</li>
+
+          <li>If any remaining minterms are covered by just one of the
+          remaining prime implicants, the corresponding prime implicants must
+          be added to the minimization, and all the minterms they cover must
+          be removed from the list of uncovered minterms.</li>
+
+          <li>If there are any uncovered minterms add the unused prime
+          implicant with the smallest number of literals to the minimization,
+          and remove all minterms that are covered by this prime implicant
+          from the list of uncovered minterms.
+
+          <p>If two or more prime implicants have equally small numbers of
+          literals, there is more than one minimal solution. Finding them
+          all involves systematically substituting each of the tied prime
+          implicants into the different minimal forms being
+          generated.</p></li>
+
+          <li>Remove all prime implicants that fail to cover any of the
+          remaining minterms from the list of unused prime implicants.</li>
+
+          <li>Repeat the previous three steps until all minterms have been
+          covered.</li>
+
+      </ul>
+
+      <p><strong>Disclaimer!</strong>  The algorithm given here is based on
+      the Quine-McClusky &ldquo;chart&rdquo; method described in (McClusky,
+      1965) and in (Kohavi, 1970). But it is not exactly the same as the
+      procedure given in those references, and may not produce the same
+      results. It should, however, produce a fully minimized function.</p>
+
+    </div>
+
+    <h2><a id="program">Minimization Program</a></h2>
+    <div class="whitebox">
+
+    <p>The code, including this website is available on <a
+    href="https://github.com/cvickery/minimize">GitHub</a>, or you can download the executable Java
+    jar file, which also contains the source code:
+
+    <ul>
+
+      <li><a href="./Minimize.jar">Minimize.jar</a>: The current version of the program. Requires
+      JRE 1.5 or later. Includes source code.</li>
+    </ul>
+
+    </div>
+
+      <p>The program allows you to enter either a boolean expression or a list of minterm numbers,
+      and displays a series of messages that show the steps it followed to perform the
+      minimization. Some expressions can be minimized more than one way, but the program shows just
+      one minimization even if others are possible.</p>
+
+    <h3>Running the Program</h3>
+    <div class="whitebox">
+
+      <h4>Graphical User Interface</h4>
+      <p>Be sure you have installed the Java JRE, locate the copy of the Jar file, you downloaded
+      above, and double-click on it&rsquo;s icon.</p>
+
+      <p>In the window that opens, you may enter either a boolean expression or a list of minterm
+      numbers in the entry field in the upper left corner of the window, and the minimized version
+      of the expression will appear immediately below it. Do not use quotes for either type of
+      input. Use single-letter variable names (case sensitive), * or nothing for AND,
+      + for OR, ^ for XOR, and ' for postfix NOT. You may also use the boolean constants 0 and 1,
+        and you may use parentheses to control evaluation order. When entering minterm numbers
+        instead of an expression, use either spaces or commas to separate the numbers.</p>
+
+      <p>When you enter an expression or minterm list, the minimized result of the algorithm appears
+      immediately below the entry field. This string is automatically copied to the system
+      clipboard and can be pasted into another application if desired. (There is no visual
+      indication that the result string has been copied, but it <em>can</em> be pasted.)</p>
+
+      <p>The Minterm Table immediately below the minimized result shows the minterms for the sum of
+      products form of the expression you entered. The left column shows the product terms as truth
+      table row numbers, and the right column shows the product terms algebraically. The Prime
+      Implicant Table below that shows each minimized product term in the first column, and a list
+      of the full product terms that each minimized term &ldquo;covers&rdquo; (implies) in the
+      second column.</p>
+
+      <p>The right side of the window shows the processing steps the program went through to do the
+      minimization. (Or an error message if you entered an invalid expression.)  This is the
+      information that is written to the console when you run either version of the program from
+      the command line.</p>
+
+      <p>Use the &ldquo;New Window&rdquo; button if you want to have multiple minimizations visible
+      at the same time. The size, shape, and interior divisions of the last window you exit will be
+      reused if you run the program again.</p>
+
+      <p>You can also launch the graphical interface from the command line using the command,
+      <em>java -jar Minimize.jar</em>.</p>
+
+      <h4>Command Line version</h4>
+
+    If you want to run the command line version, navigate to the directory with the Jar file, and
+    type:</p>
+
+      <div class="pre">
+      java -cp Minimize.jar MinimizedTable <em> [-s] &lt;expression or minterm-list&gt;</em>
+      </div>
+
+      <p>The <code>-s</code> option makes the command run in “silent” mode. The only output will be
+        the single minimized expression, with none of the intermediate processing steps displayed.
+        This option lets the program be used to generate output to be used by other programs.</p>
+
+      <p>You can enter either a boolean expression or a list of minterm numbers.</p>
+
+      <p>If you enter an expression:</p>
+
+      <ul>
+
+          <li>Put quotes around the entire expression so that embedded spaces and other symbols such
+          as asterisks will not be modified by the command interpreter.</li>
+
+          <li>Use single letters for the variable names. Upper and lowercase letters are different
+          variables. Don&rsquo;t use more than 31 different variables. (Your computer will
+          undoubtedly run out of memory before you get close to this limit.)</li>
+
+          <li>Use * for AND, + for inclusive OR, and ^ for exclusive OR. You can leave out the *'s.
+          That is, ab is the same as a*b.</li>
+
+          <li>Use ' for complementation <em>after</em> the item to be complemented.</li>
+
+          <li>AND has precedence over OR and XOR. The latter two will be evaluated in right to left
+          order. You can use parentheses to control the order of evaluation.</li>
+
+          <li>Spaces have no effect.</li>
+
+          <li>The constant literals 0 and 1 may be used.</li>
+
+      </ul>
+
+      <h4>If you use minterms</h4>
+      <ul>
+      <li>Do not enclose the list in quotes</li>
+      <li>Separate the minterm number(s) with spaces. Do not use commas.</li>
+      <li>The largest minterm number you supply will determine the number of variables in the
+      expression and the number of rows in the resulting truth table.</li>
+      <li>For example:</li>
+
+      <div class="pre">
+        java -cp Minimize.jar MinimizedTable 4 6
+      </div>
+
+      <p>There will have to be three variables and 8 rows in the truth table to include these two
+      minterms. The variables will automatically be named a, b, and c.</p>
+
+    </div>
+      <h3>Command Line Output Samples</h3>
+
+      <div class="whitebox">
+        <div class="pre">
+$ java -cp Minimize.jar MinimizedTable "a+b^c"
+Finding One Minimization
+Minterm Numbers:  [1,2,4,5,6,7]
+Reduced ab'c and a'b'c to b'c in pass 1.
+Reduced abc' and a'bc' to bc' in pass 1.
+Reduced ab'c and ab'c' to ab' in pass 1.
+Reduced abc' and ab'c' to ac' in pass 1.
+Reduced abc and ab'c to ac in pass 1.
+Reduced abc and abc' to ab in pass 1.
+Unable to reduce b'c in pass 2
+Unable to reduce bc' in pass 2
+Reduced ab and ab' to a in pass 2.
+Unable to reduce b'c in pass 3
+Unable to reduce bc' in pass 3
+Unable to reduce a in pass 3
+Minterm 1 is covered by 1 prime implicant.
+Minterm 2 is covered by 1 prime implicant.
+Minterm 4 is covered by 1 prime implicant.
+Minterm 5 is covered by 2 prime implicants.
+Minterm 6 is covered by 2 prime implicants.
+Minterm 7 is covered by 1 prime implicant.
+Expression:       a+b^c
+Sum of products:  a'b'c + a'bc' + ab'c' + ab'c + abc' + abc
+Prime implicants: [ a: ab'c', ab'c, abc', abc ], [ b'c: a'b'c, ab'c ], [ bc': a'bc', abc' ]
+Minimized:        b'c + bc' + a
+
+$ java -cp Minimize.zip MinimizedTable "aa'+b1"
+Finding One Minimization
+Minterm Numbers:  [1,3]
+Reduced ab and a'b to b in pass 1.
+Unable to reduce b in pass 2
+Minterm 1 is covered by 1 prime implicant.
+Minterm 3 is covered by 1 prime implicant.
+Expression:       a*a'+b*1
+Sum of products:  a'b + ab
+Prime implicants: [ b: a'b, ab ]
+Minimized:        b
+$
+        </div>
+
+      </div>
+
+    </div>
+    <hr />
+
+    <p class="footer"> Last changed <?php echo gmdate("Y-m-d", filemtime($_SERVER
+    ['SCRIPT_FILENAME'])); ?> </p>
+
+  </body>
+</html>
